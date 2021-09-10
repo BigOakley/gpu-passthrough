@@ -60,6 +60,7 @@ This configuration is set my modifying the GRUB boot parameters to enable these 
 
 We are going to edit the `/etc/default/grub` config file and make the following changes:
 
+
 For Intel based systems:
 
         GRUB_CMDLINE_LINUX="intel_iommu=on iommu=pt rd.driver.pre=vfio-pci"
@@ -75,6 +76,7 @@ After the change is made the grub configuration has to be updated with the follo
 Reboot for the changes to take effect and then check that our virtualization is ready for use:
 
         dmesg | grep -e iommu
+
 
 This command should give you an output that lists the kernel boot image and commands, and gives the iommu groups that the system is using. 
 
@@ -103,7 +105,7 @@ You can see that we now have vendor and device id information displayed in our o
 
 We do that by creating a configuration file in the `/etc/modeprobe.d/` directory and adding these ids as devices for the vfio-pci driver
 
-        echo "options vfio-pci ids=10de:17c8 10de:0fb0" | sudo tee /etc/modprobe.d/vfio.conf
+        echo "options vfio-pci ids=10de:17c8 10de:0fb0" | sudo tee /etc/modprobe.d/vfio.conf >> /dev/null
 
 This will load up the proper driver when the device is initialized.
 
@@ -111,7 +113,7 @@ One more step to actually get these drivers and devices to load up properly is i
 
 We are going to create another configuration file to handle this for us, this time in the `/etc/dracut.conf.d/` directory.
 
-        echo 'add_drivers+="vfio vfio_iommu_type1 vfio_pci vfio_virqfd"' | sudo tee /etc/dracut.conf.d/gpu-passthrough.conf
+        echo 'add_drivers+="vfio vfio_iommu_type1 vfio_pci vfio_virqfd"' | sudo tee /etc/dracut.conf.d/gpu-passthrough.conf >> /dev/null
 
 And then regenerate the initrd file
 
@@ -122,6 +124,20 @@ On OpenSUSE this is done with the `hwinfo --gfxcard` command, and checking the `
 
         Driver: "vfio-pci"
         Driver Modules: "vfio-pci"
+
+If the driver is not loading at this point, we have another place where we can put the driver loading in the `/etc/modules-load.d/` directory
+
+For my AMD based system, this is the command that I needed:
+
+        echo -e "vfio \nvfio_iommu_type1 \nvfio_pci \nkvm \nkvm_amd" | sudo tee /etc/modules-load.d/vfio-pci.conf >> /dev/null
+
+For an Intel base system, a single item needs to be changed:
+
+        echo -e "vfio \nvfio_iommu_type1 \nvfio_pci \nkvm \nkvm_intel" | sudo tee /etc/modules-load.d/vfio-pci.conf >> /dev/null
+
+Some, older, guides will say that you also need to include `pci_stub` in this list, but it is included in the kernel at this point and is not needed here.
+
+After making this change, restart the system and check the driver status of your graphics card again. This should now give you the result that you want.
 
 
 ## VM Software Requirements
@@ -134,15 +150,32 @@ You can't create VMs without the proper software on your sytem. For this guide I
 * qemu-kvm
 * qemu-ovmf
 
-This last itme gives us EFI support in our VMs which is essential for Looking Glass to function properly. I spent a lot of time going in circles before I realized this.
+This last item gives us EFI support in our VMs which is essential for Looking Glass to function properly. I spent a lot of time going in circles before I realized this.
 
 And these can be installed with the command:
 
         sudo zypper in libvirt virtmanager kvm qemu-kvm qemu-ovmf-x86_64
 
+SUSE recommends disabling MSR(Model Specific Register) if you are creating Windows guests, and since that is my plan, I am going to follow this advice.
+I put this in this area because it goes with the configurations necessary to make the VM actually work, though it could go earlier. I might move this, but probably not.
 
+        echo "options kvm ignore_msrs=1" | sudo tee /etc/modprobe.d/kvm.conf >> /dev/null
+
+At this point we are ready to start working on the VM, and we just need to start the `libvirtd` service
+
+        sudo systemctl start libvirtd
+
+If you want to have the service start when your system boots
+
+        sudo systemctl enable libvirtd
+
+And we are set to move on.
 
 ## Creating the VM
+
+Now we start getting in to the fun part, actually working on our guest VM. With all of the prerequisites installed, and the system options set, we can turn towards actually creating the VM that will have our GPU getting passed in to it.
+
+From here I initially used `virt-manager` to build my VM through the GUI, so will include those steps first. It is possible to do all of these steps using `virt-install` but I do not currently have those steps available to me, becuase I didn't do it!
 
 ## Preparing for Looking Glass
 
