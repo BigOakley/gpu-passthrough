@@ -234,6 +234,21 @@ The below command will install all of the packages in one shot for you, so that 
 
         sudo zypper in cmake make gcc pkgconf-pkg-config clang Mesa-libEGL-devel Mesa-libEGL1 free-ttf-fonts fontconfig-devel gmp-devel libspice-server-devel libnettle-devel libX11-devel libXfixes-devel libXi-devel libXinerama-devel libXss-devel
 
+There is also a special file that we need to create in order for Looking Glass to communicate with our VM. By default, your user does not have access to this file, and it will cause permission errors when you try to run Looking Glass. So, we are going to create it ahead of time, and give it the proper permissions. We are not going to just create a file though, we are going to create a systemd tmpfile using the `systemd-tmpfiles` command. But first, we have to create the config file that will properly create the tmpfile that we need.
+
+        echo -e "#Type Path               Mode UID  GID Age Argument \n" | sudo tee /etc/tmpfiles.d/10-looking-glass.conf
+        echo -e "f /dev/shm/looking-glass 0660 user kvm -" | sudo tee -a /etc/tmpfiles.d/10-looking-glass.conf
+
+This creates our needed configuration file. Next we will create the shared memory file for looking glass to use
+
+        sudo systemd-tmpfiles --create
+
+And we are set to move on to the next piece. You can verify that the file was created properly with `ls -l`
+
+        ls -l /dev/shm
+
+This will show you the proper permissions for your user and the `kvm` group on the newly created `looking-glass` file
+
 ## Building the Looking Glass Client
 
 Once we have the dependencies installed the looking glass client can be built
@@ -289,8 +304,40 @@ Doing that now will not give us anything useful. We now need to do the looking g
 
 ## Configuring the VM for Looking Glass
 
+At this point we have a functioning VM with GPU Passthrough working, and the Looking Glass client built. Now we can start connecting the two together, to create our ideal environment.
+
+That start with configuring `libvirt`, our VM, with some special looking glass devices.
+
+First we have to create a shared memory device that looking glass will use to communicate with the VM. The size of the shared memory changes based on the resolution that you wanting to run at. For a 1920x1080 resolution a 32 MB shared memory device is all we need. If you need a different memory size, the [Determining Memory](https://looking-glass.io/docs/stable/install/#client-determining-memory) section of the Looking Glass documentation has a very simple example of how to size this properly.
+
+In order to add this device we need to edit the configuration files directly using the `virsh` command
+
+        sudo virsh edit <vm>
+
+Here `<vm>` corresponds to the name that we gave our VM when we created it.
+This command will open up the xml configuration for us to edit.
+For simplicity, we will scrolls to the bottom of the document, and look for the `</devices>` tag.
+We want to make our addition directly above this, and match the indetations in the file.
+
+        <shmem name='looking-glass'>
+          <model type='ivshmem-plain'/>
+          <size unit='M'>32</size>
+        </shmem>
+
+Along with the shared memory device, we want to enable the SPICE guest tools so that we get clipboard synchronization, by adding a special `channel` device.
+Before creating this device, you need to make sure that the there are no other serial devices in your VM. If there are, go ahead and remove them. If you need them, they can be added back afterwards.
+
+Add the following lines to the configuration using `sudo virsh edit <vm>` again, and place it just above the `</devices>` tag again.
+
+        <channel type="spicevmc">
+          <target type="virtio" name="com.redhat.spice.0"/>
+          <address type="virtio-serial" controller="0" port="1"/>
+        </channel>
+
+This will finish the configuration that we need to do from outside of our VM. We can now put the finishing touches on the VM itself!
+
 ## Configuring the Guest VM
 
 ## Installing Guest VM Software
 
-## Finalzing and testing
+## Finalizing and testing
