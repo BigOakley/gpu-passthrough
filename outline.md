@@ -177,9 +177,115 @@ Now we start getting in to the fun part, actually working on our guest VM. With 
 
 From here I initially used `virt-manager` to build my VM through the GUI, so will include those steps first. It is possible to do all of these steps using `virt-install` but I do not currently have those steps available to me, becuase I didn't do it!
 
+FOR NOW, I'm going to skip how to create a VM through the GUI because I'm lazy and don't want to do a bunch of screen grabs. I will leave the requirements for the created VM and a couple bits of advice.
+
+ADVICE: On the last screen before it starts creating and installing the VM, make sure you check the box to customize the VM before installing. You will lose access to some of the settings after the VM is created, and they are important.
+
+VM REQUIREMENTS & SUGGESTIONS:
+
+* CPU: I used 4 cores for testing, but will likely increase this to 8 for actual use
+* RAM: I'm using 8 GB, 8192 MB, at the moment. The system is very response still, and this can alos be increased later
+* CHIPSET: Q35. This can not be changed later and should be set right away
+* BIOS: UEFI x86_64
+    * /usr/share/qemu/ovmf-x86_64-smm-ms-code.bin
+    * Based on the names of these UEFI files, this appears to be geared towards Microsoft systems
+* GRAPHIC: Spice
+* VIDEO: qxl
+* NETWORK: Set the NIC to use the `virtio` device model
+* PCI DEVICE: You can add the GPU that you are wanting to passthrough before the system is installed.
+
+After you do these configurations you can begin the installation. If all is well, it should take a few moments, and then start booting the VM. Allow the `Push any key to boot from CD or DVD` screen to timeout, so that you get the prompt to enter the BIOS. Once in the BIOS disable Secure Boot, save your settings, and exit. The system will reset, and this time you want to boot from DVD.
+
+Follow the prompts to install Windows, and prepare for the next step in our adventure.
+
+You can go ahead and install the drivers for your graphics card at this point, and it should already be outputting to the external display. Congratulations! You have cleared one of the major hurdles and are one step closer to getting this completed.
+
 ## Preparing for Looking Glass
 
+Looking Glass is a wonderful piece of software that allows you to grab the output from a VM on your system and use it without the need for an external monitor, keyboard, and mouse. It behaves as a part of your main system, but gets the benefits of being graphically accellerated.
+
+As with the previous steps there are some pieces that we want to get configured before we move forward just to make our lives a little bit easier.
+
+
+These are all of the packages that we are going to use to build the looking glass linux client in the next step. Some of these package names are very different from their Debian counterparts, which is what the creator of looking glass uses, so make sure you adhere to this list for OpenSUSE systems.
+
+OpenSUSE does not use Wayland, and nvidia plays dirty with it anyway, so those dependencies are not included in this list.
+
+* cmake
+* make
+* gcc
+* pkgconf
+* pkgconf-pkg-config
+* clang
+* Mesa-libEGL
+* Mesa-libEGL1-devel
+* free-ttf-fonts
+* fontconfig-devel
+* gmp-devel
+* libspice-server-devel
+* libnettle-devel
+* libX11-devel
+* libXfixes-devel
+* libXi-devel
+* libXinerama-devel
+* libXss-devel
+
+The below command will install all of the packages in one shot for you, so that you don't have to do the guesswork.
+
+        sudo zypper in cmake make gcc pkgconf-pkg-config clang Mesa-libEGL-devel Mesa-libEGL1 free-ttf-fonts fontconfig-devel gmp-devel libspice-server-devel libnettle-devel libX11-devel libXfixes-devel libXi-devel libXinerama-devel libXss-devel
+
 ## Building the Looking Glass Client
+
+Once we have the dependencies installed the looking glass client can be built
+
+### First: Download the source code for Linux
+
+At the time of the writing the stable version was B4, and will be used through this document. The latest version can be always be downloaded from the [Looking Glass Download Page](https://looking-glass.io/downloads).
+
+* Download the B4 version of the linux source code
+
+        curl https://looking-glass.io/ci/host/source?id=715 --output ~/Downloads/lookingglassB4.tar.gz
+
+  This gives you a tarball to work with in our Downloads folder.
+
+* Extract the `tar.gz` 
+
+        tar -xf ~/Downloads/lookingglassB4.tar.gz -C ~/
+
+  This will create a folder in your home directory named `looking-glass-B4`
+
+* Navigate to the source directory that was just extracted
+
+        cd ~/looking-glass-B4
+
+* Create the required build directory
+
+        mkdir client/build
+
+* Navigate in to this build directory
+
+        cd client/build
+
+* Configure the build for the Looking Glass client
+
+        cmake -DENABLE_BACKTRACE=no  ../
+
+  This step disabled the backtrace capability of the client. This causes a lot of problmes when building, and to avoid them, we are simply disabling it. I will enable them once I work out what is causing the issues and those notes will be added to this guide
+
+* Build the Looking Glass Client
+
+        make
+
+The Looking Glass client is now built! There is a binary named `looking-glass-client` in the build directory. You can move this binary anywhere you want to run looking glass, and we are going to move it to the home directory now
+
+        cp looking-glass-client ~/
+
+We can now launch the client from home home directory in the terminal by typing:
+
+        ./looking-glass-client
+
+Doing that now will not give us anything useful. We now need to do the looking glass configuration to pull it all together.
+
 
 ## Configuring the VM for Looking Glass
 
