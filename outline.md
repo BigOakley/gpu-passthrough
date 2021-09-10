@@ -1,4 +1,4 @@
-#Overview
+# Overview
 
 This is an attempt to document the steps needed to setup pci-passthrough, specifically for nvidia GPUS, and enable looking glass to access the new VM without the need for additional monitors, keyboards, and mice on OpenSUSE Tumbleweed.
 
@@ -34,9 +34,113 @@ looking glass documentation
 
 # Pre-Requisites
 
+Nothing is going to work straight out of the box, that would be too easy. I am going to start with the requirements of the system you are using, and then have the software requirements listed after. The idea is that if you satisify the requirements in this order, you shouldn't have to worry about it at a later stage. That's the theory anyway.
+
 ## System Requirements
 
+None of what this guide is trying to do matters if your CPU doesn't support direct access virtualization technology. In the year 2021, I would certainly hope that this isn't something that you have to actually think about when buying processors, but we are still going to take the time to check.
+
+Intel calls their technology `VT-d` and AMD is `AMD-V`. While your system might support these features, there is no guarantee that it is enabled by default. We can check for the feature using a simple terminal command:
+
+If you are using an Intel CPU:
+
+	sudo grep --color vmx /proc/cpuinfo
+
+If you are using an AMD CPU:
+
+	sudo grep --color svm /proc/cpuinfo
+
+If these commands do not return a result, you likely need to enable the feature in your system BIOS. After doing that, these will confirm that you have virtualization technology available for the coming steps
+
+### Configure the System
+
+Now that we are sure that the system supports virtualization, we can set some of the required parameters. First we have to enable `IOMMU` so that we can get the performance benefit of connecting a GPU directly to our VM.
+
+This configuration is set my modifying the GRUB boot parameters to enable these configurations at boot time.
+
+We are going to edit the `/etc/default/grub` config file and make the following changes:
+
+For Intel based systems:
+
+        GRUB_CMDLINE_LINUX="intel_iommu=on iommu=pt rd.driver.pre=vfio-pci"
+
+For AMD based system:
+
+        GRUB_CMDLINE_LINUX="iommu=pt amd_iommu=on rd.driver.pre=vfio-pci"
+
+After the change is made the grub configuration has to be updated with the following command:
+
+        sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+
+Reboot for the changes to take effect and then check that our virtualization is ready for use:
+
+        dmesg | grep -e iommu
+
+This command should give you an output that lists the kernel boot image and commands, and gives the iommu groups that the system is using. 
+
+### Isolate the graphics card
+
+Once the ability to passthrough a PCI device is configured, we can now work on isolating the card that we are going to give to our VM.
+
+To do that we need to use `lspci` to find the graphics card that we want, and the PCI bus that it is connected to.
+
+        sudo lspci | grep -i vga
+
+This command will return all of the PCI devices on the system that are VGA devices. On the far left we will have the bus that we want to work with.
+There is also an audio device connected to the graphics card, that we want to pass through to the VM. It's not a requirement, but I like to be complete. 
+
+To get the audio device, we have to use `lspci` again to list the devices that share the bus with our desired video card. In my case, I want to pass the 980TI through to my VM so it's bus 4:00
+
+        sudo lspci | grep -i 4:00
+
+This shows that there is an audio device that we can pass through, and we will need these bus numbers for the VM configurations later. 
+
+Before that though, we need the device ids of these two devices, so that we can have the vfio driver connect to them at startup. We can use `lspci` to get that information as well, and it takes a small edit to our previous command
+
+        sudo lspci -nn | grep -i 4:00
+
+You can see that we now have vendor and device id information displayed in our output. Both of these items are going to go in to a configuration file so that they are assigned the vfio driver, and not the nvidia driver.
+
+We do that by creating a configuration file in the `/etc/modeprobe.d/` directory and adding these ids as devices for the vfio-pci driver
+
+        echo "options vfio-pci ids=10de:17c8 10de:0fb0" | sudo tee /etc/modprobe.d/vfio.conf
+
+This will load up the proper driver when the device is initialized.
+
+One more step to actually get these drivers and devices to load up properly is including them in the initrd file. 
+
+We are going to create another configuration file to handle this for us, this time in the `/etc/dracut.conf.d/` directory.
+
+        echo 'add_drivers+="vfio vfio_iommu_type1 vfio_pci vfio_virqfd"' | sudo tee /etc/dracut.conf.d/gpu-passthrough.conf
+
+And then regenerate the initrd file
+
+        sudo dracut --force /boot/initrd $(uname -r)
+
+At this point you can reboot the machine and verify that the graphics card is being assigned the proper vfio-pci driver.
+On OpenSUSE this is done with the `hwinfo --gfxcard` command, and checking the `Driver:` line of the appropriate card. If it's working properly, you should see:
+
+        Driver: "vfio-pci"
+        Driver Modules: "vfio-pci"
+
+
 ## VM Software Requirements
+
+You can't create VMs without the proper software on your sytem. For this guide I used `virt` and `virt-manager`, so that I have a nice GUI at the end of it. The software pieces that were needed are:
+
+* libvirt
+* virt-manager
+* kvm
+* qemu-kvm
+* qemu-ovmf
+
+This last itme gives us EFI support in our VMs which is essential for Looking Glass to function properly. I spent a lot of time going in circles before I realized this.
+
+And these can be installed with the command:
+
+        sudo zypper in libvirt virtmanager kvm qemu-kvm qemu-ovmf-x86_64
+
+
 
 ## Creating the VM
 
