@@ -2,7 +2,7 @@
 
 This is an attempt to document the steps needed to setup pci-passthrough, specifically for nvidia GPUS, and enable looking glass to access the new VM without the need for additional monitors, keyboards, and mice on OpenSUSE Tumbleweed.
 
-Looking Glass Download Page](https://looking-glass.io/downloads)There will of course be differences for other distros, but the concepts are hopefully the same.
+There will of course be differences for other distros, but the concepts are hopefully the same.
 
 The process is poorly documented, and fragmented, across many articles and blogs. My efforts lead me down many differen paths, with no clear inidication of what was missing when things went wrong. 
 
@@ -29,8 +29,17 @@ These are the major pieces of hardware that we will be focusing on. I'm not here
 
 # References
 
-OpenSUSE documentation on pci-passthrough
-looking glass documentation
+- [OpenSUSE PCI Passthrough](https://doc.opensuse.org/documentation/leap/virtualization/html/book-virtualization/app-gpu-passthru.html)
+- [Looking Glass Documentation](https://looking-glass.io/docs/stable/install/)
+- [Arch Linux PCI Passthrough WIKI](https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF#Passing_VM_audio_to_host_via_PulseAudio)
+
+## Downloads
+
+- [Spice Agent Windows Installer](https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe)
+- [Looking Glass Windows Software](https://looking-glass.io/ci/host/download?id=715)
+- [IVSHMEM Windows Driver](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/upstream-virtio/virtio-win10-prewhql-0.1-161.zip)
+- [Looking Glass Download Page](https://looking-glass.io/downloads)
+- [Spice Server Windows Software](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/)
 
 # Pre-Requisites
 
@@ -207,7 +216,6 @@ Looking Glass is a wonderful piece of software that allows you to grab the outpu
 
 As with the previous steps there are some pieces that we want to get configured before we move forward just to make our lives a little bit easier.
 
-
 These are all of the packages that we are going to use to build the looking glass linux client in the next step. Some of these package names are very different from their Debian counterparts, which is what the creator of looking glass uses, so make sure you adhere to this list for OpenSUSE systems.
 
 OpenSUSE does not use Wayland, and nvidia plays dirty with it anyway, so those dependencies are not included in this list.
@@ -286,7 +294,7 @@ At the time of the writing the stable version was B4, and will be used through t
 
         cmake -DENABLE_BACKTRACE=no  ../
 
-  This step disabled the backtrace capability of the client. This causes a lot of problmes when building, and to avoid them, we are simply disabling it. I will enable them once I work out what is causing the issues and those notes will be added to this guide
+  This step disables the backtrace capability of the client. The backtrace feature can cause a lot of problems when building, and to avoid them, we are simply disabling it. I will enable them once I work out what is causing the issues and those notes will be added to this guide
 
 * Build the Looking Glass Client
 
@@ -423,16 +431,3 @@ Now that we have done all of the configuration work, it is time for the last ste
 If everything is configured correctly, you should see the looking glass window open up, and your VM loading inside of it. 
 You can now disconnect any external monitors that you have, and enjoy your new integrated VM experience!
 
-## References
-
-- [OpenSUSE PCI Passthrough](https://doc.opensuse.org/documentation/leap/virtualization/html/book-virtualization/app-gpu-passthru.html)
-- [Looking Glass Documentation](https://looking-glass.io/docs/stable/install/)
-- [Arch Linux PCI Passthrough WIKI](https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF#Passing_VM_audio_to_host_via_PulseAudio)
-
-### Downloads
-
-- [Spice Agent Windows Installer](https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe)
-- [Looking Glass Windows Software](https://looking-glass.io/ci/host/download?id=715)
-- [IVSHMEM Windows Driver](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/upstream-virtio/virtio-win10-prewhql-0.1-161.zip)
-- [Looking Glass Download Page](https://looking-glass.io/downloads)
-- [Spice Server Windows Software](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/)
