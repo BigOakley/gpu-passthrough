@@ -237,7 +237,7 @@ The below command will install all of the packages in one shot for you, so that 
 There is also a special file that we need to create in order for Looking Glass to communicate with our VM. By default, your user does not have access to this file, and it will cause permission errors when you try to run Looking Glass. So, we are going to create it ahead of time, and give it the proper permissions. We are not going to just create a file though, we are going to create a systemd tmpfile using the `systemd-tmpfiles` command. But first, we have to create the config file that will properly create the tmpfile that we need.
 
         echo -e "#Type Path               Mode UID  GID Age Argument \n" | sudo tee /etc/tmpfiles.d/10-looking-glass.conf
-        echo -e "f /dev/shm/looking-glass 0660 user kvm -" | sudo tee -a /etc/tmpfiles.d/10-looking-glass.conf
+        echo -e "f /dev/shm/looking-glass 0660 $(whoami) kvm -" | sudo tee -a /etc/tmpfiles.d/10-looking-glass.conf
 
 This creates our needed configuration file. Next we will create the shared memory file for looking glass to use
 
@@ -334,10 +334,56 @@ Add the following lines to the configuration using `sudo virsh edit <vm>` again,
           <address type="virtio-serial" controller="0" port="1"/>
         </channel>
 
+With these configuration changes finished, we can do a few more small tweaks to our VM before loading it up and doing some of the final steps.
+
+* If there is a tablet device, remove it
+* Make sure that you have a mouse device
+* Add a Keyboard device with the type of `virtio`
+  This gives better keyboard performance inside of the VM
+
 This will finish the configuration that we need to do from outside of our VM. We can now put the finishing touches on the VM itself!
 
 ## Configuring the Guest VM
 
-## Installing Guest VM Software
+Now that all of THAT is behind us, we can start working inside of our VM again. Fire it up and use `virt-manager` to connect to the VM.
+
+Once we are logged in to the Windows machines there are a few things that we need to take care of. 
+
+1. Download the IVSHMEM driver package: [IVSHMEM Windows Driver](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/upstream-virtio/virtio-win10-prewhql-0.1-161.zip)
+2. Extract the zip file to a location that you can remember on the VM. Desktop or Documents are suggested.
+3. Open the Device Manager and find teh `PCI Standard RAM Controller` under the `System Devices` node. 
+4. Right click on the device and update the driver
+5. Select "Search my computer for a driver" and navigate to where you extracted it. 
+   Make sure that you have "include subfolders" selected
+6. Click `OK`
+
+This will install the IVSHMEM driver to enable looking glass
+
+Next, we need to get the Looking Glass Windows application and install it
+
+1. Downalod the B4 Windows Application from Looking Glass: [Looking Glass Windows Software](https://looking-glass.io/ci/host/download?id=715)
+2. Run the installer as an Administrator
+3. That's it. The Looking Glass agent is now running as a service on your VM
+
+To finalize our shared clipboard configuration that we enabled earlier, you need to install the SPICE agent on the VM
+
+1. Download the Spice Agent Installer: [Spice Agent Windows Installer](https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe)
+2. Run the installer as an administrator
+
+That is the end of the configuration for the VM. All of the hard work is now done, and we are ready for the moment of truth.
 
 ## Finalizing and testing
+
+Now that we have done all of the configuration work, it is time for the last steps and testing.
+
+1. If the VM is running, shut it down.
+2. In `virt-manager` change your VMs `video` device from `qxl` to `none`. You will have to type `none` in to the drop down, becuase it's not a normal option.
+3. Apply the change
+4. Start the VM
+5. In a terminal window navigate to your home directory. `cd ~/` if you already have one open
+6. Launch the looking glass client with the following command
+
+        ./looking-glass-client
+
+If everything is configured correctly, you should see the looking glass window open up, and your VM loading inside of it. 
+You can now disconnect any external monitors that you have, and enjoy your new integrated VM experience!
