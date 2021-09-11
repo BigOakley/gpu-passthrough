@@ -343,6 +343,18 @@ With these configuration changes finished, we can do a few more small tweaks to 
 
 This will finish the configuration that we need to do from outside of our VM. We can now put the finishing touches on the VM itself!
 
+## Configuring Audio Passthrough
+
+**supposedly** this can be achieved with QEMU passthrough, but I haven't been able to make that work yet. Unsurprisingly, there were a lot of changes to QEMU and libvirt that made previous ways of getting audio passthrough to work no longer function. The information is a bit scattered, and I'm having a hard time finding the actual working solution. So for now, I am looking at the Scream configuration.
+
+UPDATE: It appears that some of the requirements for audio might not have been installed with the system. `qemu-audio-pa` may be required to work with Pulseaudio, so we are still investing here.
+
+[Looking Glass Scream Documentation](https://looking-glass.io/wiki/Using_Scream_over_LAN)
+
+I want to get the QEMU passthrough working, so will continue investigating that. But I want to have working audio first so we are currently looking at the scream setup
+
+And I have confirmed that I am both and idiot and a genius. Audio is now working and will be updating the steps to make this apparent and work going forward.
+
 ## Configuring the Guest VM
 
 Now that all of THAT is behind us, we can start working inside of our VM again. Fire it up and use `virt-manager` to connect to the VM.
