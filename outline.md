@@ -2,7 +2,7 @@
 
 This is an attempt to document the steps needed to setup pci-passthrough, specifically for nvidia GPUS, and enable looking glass to access the new VM without the need for additional monitors, keyboards, and mice on OpenSUSE Tumbleweed.
 
-There will of course be differences for other distros, but the concepts are hopefully the same.
+Looking Glass Download Page](https://looking-glass.io/downloads)There will of course be differences for other distros, but the concepts are hopefully the same.
 
 The process is poorly documented, and fragmented, across many articles and blogs. My efforts lead me down many differen paths, with no clear inidication of what was missing when things went wrong. 
 
@@ -149,12 +149,13 @@ You can't create VMs without the proper software on your sytem. For this guide I
 * kvm
 * qemu-kvm
 * qemu-ovmf
+* qemu-audio-pa
 
 This last item gives us EFI support in our VMs which is essential for Looking Glass to function properly. I spent a lot of time going in circles before I realized this.
 
 And these can be installed with the command:
 
-        sudo zypper in libvirt virtmanager kvm qemu-kvm qemu-ovmf-x86_64
+        sudo zypper in libvirt virtmanager kvm qemu-kvm qemu-ovmf-x86_64 qemu-audio-pa
 
 SUSE recommends disabling MSR(Model Specific Register) if you are creating Windows guests, and since that is my plan, I am going to follow this advice.
 I put this in this area because it goes with the configurations necessary to make the VM actually work, though it could go earlier. I might move this, but probably not.
@@ -341,19 +342,41 @@ With these configuration changes finished, we can do a few more small tweaks to 
 * Add a Keyboard device with the type of `virtio`
   This gives better keyboard performance inside of the VM
 
+Audio does not work immediately without some additional configuration. In this case I am using PulseAudio and will be passing audio through QEMU to the host system. 
+
+Before we can finish the audio configuration we have to enable out user to have access to QEMU in the `/etc/libvirt/qemu.conf` file.
+
+        sudo vim /etc/libvirt/qemu.conf
+
+Replace the root username with your own user name in the following line (line 530 in my configuration)
+ 
+        #user = "root"
+
+After editing this entry we can finish the audio setup in the VM configuration.
+
+        sudo virsh edit <vm>
+
+We need to edit the sound device in the system, most likely `ich9` and edit the configuration to pass audio to PulseAudio
+
+        <sound model='ich9'>
+          <codec type='micro'/>
+          <audio id='1'/>
+        </sound>
+        <audio id='1' type='pulseaudio' serverName='/run/user/1000/pulse/native'/>
+
+You might have another `<audio>` entry in the config connected to a spice device. Edit that device from:
+
+        <audio id='1' type='spice'/>
+
+to instead be:
+
+        <audio id='2' type='spice'/>
+
+This will get the audio working for the VM and pass it through to the host system
+
 This will finish the configuration that we need to do from outside of our VM. We can now put the finishing touches on the VM itself!
 
-## Configuring Audio Passthrough
-
-**supposedly** this can be achieved with QEMU passthrough, but I haven't been able to make that work yet. Unsurprisingly, there were a lot of changes to QEMU and libvirt that made previous ways of getting audio passthrough to work no longer function. The information is a bit scattered, and I'm having a hard time finding the actual working solution. So for now, I am looking at the Scream configuration.
-
-UPDATE: It appears that some of the requirements for audio might not have been installed with the system. `qemu-audio-pa` may be required to work with Pulseaudio, so we are still investing here.
-
-[Looking Glass Scream Documentation](https://looking-glass.io/wiki/Using_Scream_over_LAN)
-
-I want to get the QEMU passthrough working, so will continue investigating that. But I want to have working audio first so we are currently looking at the scream setup
-
-And I have confirmed that I am both and idiot and a genius. Audio is now working and will be updating the steps to make this apparent and work going forward.
+If there are issues with the audio there are suggestions for improvements in the [Arch PCI Passthrough Wiki](https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF#Passing_VM_audio_to_host_via_PulseAudio)
 
 ## Configuring the Guest VM
 
@@ -399,3 +422,17 @@ Now that we have done all of the configuration work, it is time for the last ste
 
 If everything is configured correctly, you should see the looking glass window open up, and your VM loading inside of it. 
 You can now disconnect any external monitors that you have, and enjoy your new integrated VM experience!
+
+## References
+
+[OpenSUSE PCI Passthrough](https://doc.opensuse.org/documentation/leap/virtualization/html/book-virtualization/app-gpu-passthru.html)
+[Looking Glass Documentation](https://looking-glass.io/docs/stable/install/)
+[Arch Linux PCI Passthrough WIKI](https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF#Passing_VM_audio_to_host_via_PulseAudio)
+
+### Downloads
+
+[Spice Agent Windows Installer](https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe)
+[Looking Glass Windows Software](https://looking-glass.io/ci/host/download?id=715)
+[IVSHMEM Windows Driver](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/upstream-virtio/virtio-win10-prewhql-0.1-161.zip)
+[Looking Glass Download Page](https://looking-glass.io/downloads)
+[Spice Server Windows Software](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/)
