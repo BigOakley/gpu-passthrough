@@ -425,14 +425,14 @@ You can now disconnect any external monitors that you have, and enjoy your new i
 
 ## References
 
-[OpenSUSE PCI Passthrough](https://doc.opensuse.org/documentation/leap/virtualization/html/book-virtualization/app-gpu-passthru.html)
-[Looking Glass Documentation](https://looking-glass.io/docs/stable/install/)
-[Arch Linux PCI Passthrough WIKI](https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF#Passing_VM_audio_to_host_via_PulseAudio)
+- [OpenSUSE PCI Passthrough](https://doc.opensuse.org/documentation/leap/virtualization/html/book-virtualization/app-gpu-passthru.html)
+- [Looking Glass Documentation](https://looking-glass.io/docs/stable/install/)
+- [Arch Linux PCI Passthrough WIKI](https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF#Passing_VM_audio_to_host_via_PulseAudio)
 
 ### Downloads
 
-[Spice Agent Windows Installer](https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe)
-[Looking Glass Windows Software](https://looking-glass.io/ci/host/download?id=715)
-[IVSHMEM Windows Driver](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/upstream-virtio/virtio-win10-prewhql-0.1-161.zip)
-[Looking Glass Download Page](https://looking-glass.io/downloads)
-[Spice Server Windows Software](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/)
+- [Spice Agent Windows Installer](https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe)
+- [Looking Glass Windows Software](https://looking-glass.io/ci/host/download?id=715)
+- [IVSHMEM Windows Driver](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/upstream-virtio/virtio-win10-prewhql-0.1-161.zip)
+- [Looking Glass Download Page](https://looking-glass.io/downloads)
+- [Spice Server Windows Software](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/)
