@@ -1,0 +1,12 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Terminal=false
+# I use the looking-glass.sh script, renamed, and placed in the user bin directory
+# and pass in the name of the VM to launch
+Exec=~/.local/bin/lookingglass win10efi
+Name=Windows 10 Looking Glass
+# https://looking-glass.io/themes/frontend/LookingGlass/images/home-lg-icon.png
+# Icon needs to be resized down to 128x128, renamed, and placed in this location to work
+Icon=~/.local/share/icons/hicolor/128x128/apps/looking_glass.png
