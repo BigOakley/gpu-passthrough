@@ -143,6 +143,7 @@ You can also verify the contents of this file with the `cat` command
 And then regenerate the initrd file
 
     sudo dracut --force /boot/initrd $(uname -r)
+![dracut init](../assets/rebuild_init.gif)
 
 At this point you can reboot the machine and verify that the graphics card is being assigned the proper vfio-pci driver.
 On OpenSUSE this is done with the `hwinfo --gfxcard` command, and checking the `Driver:` line of the appropriate card. If it's working properly, you should see:
@@ -155,12 +156,21 @@ If the driver is not loading at this point, we have another place where we can p
 
 For my AMD based system, this is the command that I needed:
 
-        echo -e "vfio \nvfio_iommu_type1 \nvfio_pci \nkvm \nkvm_amd" | sudo tee /etc/modules-load.d/vfio-pci.conf >> /dev/null
+    echo -e "vfio \nvfio_iommu_type1 \nvfio_pci \nkvm \nkvm_amd" | sudo tee /etc/modules-load.d/vfio-pci.conf >> /dev/null
+
+Verify the file with the `cat` command
+
+    cat /etc/modules-load.d/vfio-pci.conf
+![amd modules](../assets/amd_modules-load.gif)
 
 For an Intel base system, a single item needs to be changed:
 
-        echo -e "vfio \nvfio_iommu_type1 \nvfio_pci \nkvm \nkvm_intel" | sudo tee /etc/modules-load.d/vfio-pci.conf >> /dev/null
+    echo -e "vfio \nvfio_iommu_type1 \nvfio_pci \nkvm \nkvm_intel" | sudo tee /etc/modules-load.d/vfio-pci.conf >> /dev/null
 
+Verify the file with the `cat` command
+
+    cat /etc/modules-load.d/vfio-pci.conf
+![intel modules](../assets/intel_modules-load.gif)
 Some, older, guides will say that you also need to include `pci_stub` in this list, but it is included in the kernel at this point and is not needed here.
 
 After making this change, restart the system and check the driver status of your graphics card again. This should now give you the result that you want.
@@ -172,29 +182,29 @@ You can't create VMs without the proper software on your sytem. For this guide I
 
 * libvirt
 * virt-manager
+* virt-viewer
 * kvm
 * qemu-kvm
 * qemu-ovmf
 * qemu-audio-pa
 
-This last item gives us EFI support in our VMs which is essential for Looking Glass to function properly. I spent a lot of time going in circles before I realized this.
+`qemu-ovmf` gives us EFI support in our VMs which is essential for Looking Glass to function properly. GPU Passthrough can work just fine on a BIOS VM, but I spent a lot of time going in circles before I realized this was essential for Looking Glass.
 
 And these can be installed with the command:
 
-        sudo zypper in libvirt virtmanager kvm qemu-kvm qemu-ovmf-x86_64 qemu-audio-pa
+    sudo zypper in libvirt virtmanager kvm qemu-kvm qemu-ovmf-x86_64 qemu-audio-pa
 
 SUSE recommends disabling MSR(Model Specific Register) if you are creating Windows guests, and since that is my plan, I am going to follow this advice.
-I put this in this area because it goes with the configurations necessary to make the VM actually work, though it could go earlier. I might move this, but probably not.
 
-        echo "options kvm ignore_msrs=1" | sudo tee /etc/modprobe.d/kvm.conf >> /dev/null
+    echo "options kvm ignore_msrs=1" | sudo tee /etc/modprobe.d/kvm.conf >> /dev/null
 
 At this point we are ready to start working on the VM, and we just need to start the `libvirtd` service
 
-        sudo systemctl start libvirtd
+    sudo systemctl start libvirtd
 
 If you want to have the service start when your system boots
 
-        sudo systemctl enable libvirtd
+    sudo systemctl enable libvirtd
 
 And we are set to move on.
 
